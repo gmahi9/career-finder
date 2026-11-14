@@ -469,7 +469,13 @@ button:disabled {
   box-shadow: 0 22px 50px #30241214;
 }
 
+.intro-stage {
+  position: relative;
+}
+
 .intro-hero {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(260px, 340px);
   align-items: center;
@@ -477,8 +483,72 @@ button:disabled {
   padding: 8px 0 48px;
 }
 
+.mesh {
+  position: absolute;
+  inset: -12% -6% -8%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  will-change: transform;
+}
+
+.blob-a {
+  width: min(520px, 70vw);
+  height: min(520px, 70vw);
+  right: -6%;
+  top: -18%;
+  background: radial-gradient(circle, rgba(150, 196, 232, 0.85), rgba(150, 196, 232, 0) 68%);
+  animation: mesh-a 22s ease-in-out infinite;
+}
+
+.blob-b {
+  width: min(420px, 60vw);
+  height: min(420px, 60vw);
+  left: -8%;
+  bottom: -30%;
+  background: radial-gradient(circle, rgba(190, 216, 240, 0.95), rgba(190, 216, 240, 0) 70%);
+  animation: mesh-b 28s ease-in-out infinite;
+}
+
+.blob-c {
+  width: min(280px, 42vw);
+  height: min(280px, 42vw);
+  right: 18%;
+  bottom: -10%;
+  background: radial-gradient(circle, rgba(141, 69, 32, 0.16), rgba(141, 69, 32, 0) 70%);
+  animation: mesh-c 18s ease-in-out infinite;
+}
+
+@keyframes mesh-a {
+  50% { transform: translate3d(-6%, 8%, 0) scale(1.08); }
+}
+
+@keyframes mesh-b {
+  50% { transform: translate3d(8%, -6%, 0) scale(1.06); }
+}
+
+@keyframes mesh-c {
+  50% { transform: translate3d(-8%, -10%, 0) scale(1.12); }
+}
+
+.intro-copy,
+.intro-card-wrap {
+  position: relative;
+  z-index: 1;
+}
+
 .intro-copy {
   max-width: 36rem;
+}
+
+.intro-card-wrap {
+  width: 100%;
+  justify-self: end;
 }
 
 .intro-hero h1 {
@@ -555,24 +625,25 @@ button:disabled {
 }
 
 .progress {
-  display: grid;
-  grid-template-columns: repeat(20, minmax(0, 1fr));
-  gap: 5px;
-  margin: 0.9rem 0 1.15rem;
-}
-
-.pip {
+  position: relative;
   height: 4px;
   border-radius: 99px;
   background: rgba(28, 36, 48, 0.12);
+  overflow: hidden;
+  margin: 0.9rem 0 1.15rem;
 }
 
-.pip.filled {
-  background: #1c2430;
+.progress-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--copper), #2a3544);
 }
 
-.pip.current {
-  background: var(--copper);
+.question-viewport {
+  overflow: hidden;
 }
 
 fieldset {
@@ -598,6 +669,7 @@ legend {
 }
 
 .option {
+  position: relative;
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 12px;
@@ -609,14 +681,26 @@ legend {
   border-radius: 16px;
   padding: 0.95rem 1rem;
   cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
 
 .option:hover,
-.option:has(input:checked) {
+.option.is-on {
   color: var(--ink);
-  border-color: #8d45208c;
+}
+
+.option-wash {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
   background: #8d45201a;
+  box-shadow: inset 0 0 0 1px #8d45208c;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.option > :not(.option-wash) {
+  position: relative;
+  z-index: 1;
 }
 
 .option input {
@@ -699,8 +783,57 @@ legend {
 
 .filters {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.9rem 16px;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.chip-group {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.chip-group p {
+  margin: 0;
+  color: var(--copper-2);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  position: relative;
+  border: 1px solid var(--line);
+  background: #fffcf7c7;
+  color: var(--muted);
+  border-radius: 999px;
+  min-height: 40px;
+  padding: 0.35rem 0.85rem;
+  cursor: pointer;
+}
+
+.chip.is-on {
+  color: var(--ink-btn);
+  border-color: transparent;
+}
+
+.chip-wash {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #1c2430;
+  z-index: 0;
+}
+
+.chip > span {
+  position: relative;
+  z-index: 1;
 }
 
 input[type="text"],
@@ -729,16 +862,29 @@ textarea:focus {
   background: #e394550f;
 }
 
-.cards {
+.bento {
   list-style: none;
   padding: 0;
   margin: 0;
   display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 16px;
 }
 
+.bento > li:nth-child(1) { grid-column: span 12; }
+.bento > li:nth-child(2),
+.bento > li:nth-child(3) { grid-column: span 6; }
+.bento > li:nth-child(4) { grid-column: span 5; }
+.bento > li:nth-child(5) { grid-column: span 7; }
+
 .card {
   padding: 1.4rem 1.35rem 1.5rem;
+  height: 100%;
+}
+
+.loading {
+  padding: 1.4rem 1.3rem;
+  color: var(--muted);
 }
 
 .card-top {
@@ -762,6 +908,59 @@ textarea:focus {
   background: #1c24300f;
   color: var(--muted);
   font-size: 0.88rem;
+}
+
+.ring {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  margin-left: auto;
+  flex: none;
+}
+
+.card-featured .ring {
+  width: 92px;
+  height: 92px;
+}
+
+.ring svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.ring-track,
+.ring-value {
+  fill: none;
+  stroke-width: 5;
+}
+
+.ring-track {
+  stroke: rgba(28, 36, 48, 0.12);
+}
+
+.ring-value {
+  stroke: var(--copper);
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+
+.ring-num {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.card-featured .ring-num {
+  font-size: 1.25rem;
 }
 
 .score {
@@ -1023,7 +1222,7 @@ tbody tr:nth-child(even) {
     font-size: clamp(2.7rem, 7vw, 4rem);
   }
 
-  .intro-card {
+  .intro-card-wrap {
     justify-self: start;
     width: min(100%, 36rem);
   }
@@ -1042,10 +1241,6 @@ tbody tr:nth-child(even) {
   .footer-top {
     grid-template-columns: 1fr;
     gap: 22px;
-  }
-
-  .filters {
-    grid-template-columns: 1fr 1fr;
   }
 
   .results-head,
@@ -1073,12 +1268,16 @@ tbody tr:nth-child(even) {
   }
 
   .intro-card,
+  .intro-card-wrap,
   .intro-copy .btn,
   .results-actions .btn {
     width: 100%;
   }
 
-  .filters,
+  .bento > li {
+    grid-column: span 12;
+  }
+
   .facts {
     grid-template-columns: 1fr;
   }
@@ -1152,8 +1351,19 @@ tbody tr:nth-child(even) {
   .nav-shell,
   .mobile-menu,
   .skip,
+  .mesh,
   .no-print {
     display: none !important;
+  }
+
+  .card,
+  .bento li,
+  .question-pane,
+  .progress-fill,
+  .option,
+  .chip {
+    opacity: 1 !important;
+    transform: none !important;
   }
 
   .page {

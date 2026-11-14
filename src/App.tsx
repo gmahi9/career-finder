@@ -1,12 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import logoUrl from "./assets/logo-mark.svg";
 import { questions } from "./data/questions";
 import catalogJson from "./data/careers.json";
 import { Quiz } from "./components/Quiz";
-import { Results } from "./components/Results";
+import { Reveal, TapButton, TapLink } from "./components/motionBits";
 import { decodeAnswers, encodeAnswers } from "./lib/hash";
+import { EASE, useCalm } from "./lib/motionPrefs";
 import { buildUserProfile, rankCareers } from "./lib/score";
 import type { Answers, CareerCatalog } from "./lib/types";
+
+const Results = lazy(() => import("./components/Results"));
 
 const catalog = catalogJson as CareerCatalog;
 const SITE = "https://aiteksolutions.net";
@@ -122,6 +126,10 @@ export function App() {
   }
 
   const year = new Date().getFullYear();
+  const calm = useCalm();
+  const phaseMotion = calm
+    ? { duration: 0 }
+    : { duration: 0.45, ease: EASE };
 
   return (
     <>
@@ -136,7 +144,7 @@ export function App() {
           ))}
         </nav>
         <div className="nav-end">
-          <a className="btn btn-primary btn-sm" href={`${SITE}/contact`}>Submit a query</a>
+          <TapLink className="btn btn-primary btn-sm" href={`${SITE}/contact`}>Submit a query</TapLink>
           <button
             className="menu-btn"
             type="button"
@@ -155,52 +163,99 @@ export function App() {
           {NAV.map((item) => (
             <a key={item.href} href={item.href} onClick={() => setMenuOpen(false)}>{item.label}</a>
           ))}
-          <a className="btn btn-primary" href={`${SITE}/contact`} onClick={() => setMenuOpen(false)}>
+          <TapLink className="btn btn-primary" href={`${SITE}/contact`} onClick={() => setMenuOpen(false)}>
             Submit a query
-          </a>
+          </TapLink>
         </nav>
       </div>
       <main id="main" tabIndex={-1}>
         <div className="page">
           <div className="wrap">
-            {phase === "intro" && (
-              <section className="intro-hero" aria-labelledby="intro-title">
-                <div className="intro-copy">
-                  <p className="eyebrow">Career Path Finder</p>
-                  <h1 id="intro-title">Find a path that fits how you actually want to work.</h1>
-                  <p className="lede">
-                    Twenty questions on interests, physical work, people, schooling, pay, and location.
-                    The result is a ranked list with pay, 10-year growth, and a starting checklist.
-                    Figures come from the U.S. Bureau of Labor Statistics Occupational Outlook Handbook.
-                  </p>
-                  <div className="actions">
-                    <button type="button" className="btn btn-primary" onClick={start}>Start the quiz</button>
+            <AnimatePresence mode="wait" initial={false}>
+              {phase === "intro" && (
+                <motion.div
+                  key="intro"
+                  initial={calm ? false : { opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={calm ? { opacity: 1 } : { opacity: 0, y: -12 }}
+                  transition={phaseMotion}
+                >
+                  <div className="intro-stage">
+                    <div className="mesh" aria-hidden="true">
+                      <span className="blob blob-a" />
+                      <span className="blob blob-b" />
+                      <span className="blob blob-c" />
+                    </div>
+                    <section className="intro-hero" aria-labelledby="intro-title">
+                    <div className="intro-copy">
+                      <Reveal index={0}>
+                        <p className="eyebrow">Career Path Finder</p>
+                      </Reveal>
+                      <Reveal index={1}>
+                        <h1 id="intro-title">Find a path that fits how you actually want to work.</h1>
+                      </Reveal>
+                      <Reveal index={2}>
+                        <p className="lede">
+                          Twenty questions on interests, physical work, people, schooling, pay, and location.
+                          The result is a ranked list with pay, 10-year growth, and a starting checklist.
+                          Figures come from the U.S. Bureau of Labor Statistics Occupational Outlook Handbook.
+                        </p>
+                      </Reveal>
+                      <Reveal index={3}>
+                        <div className="actions">
+                          <TapButton type="button" className="btn btn-primary" onClick={start}>Start the quiz</TapButton>
+                        </div>
+                      </Reveal>
+                      <Reveal index={4}>
+                        <p className="fine">Nothing is uploaded. A share link stores your answers in the page address only.</p>
+                      </Reveal>
+                    </div>
+                    <Reveal index={2} className="intro-card-wrap">
+                      <aside className="intro-card glass">
+                        <p className="kicker">How it works</p>
+                        <ol>
+                          <li>Pick the closest choice. You can go back and change it.</li>
+                          <li>Review the top matches and why each one scored.</li>
+                          <li>Keep a link, print the page, or filter the comparison table.</li>
+                        </ol>
+                      </aside>
+                    </Reveal>
+                    </section>
                   </div>
-                  <p className="fine">Nothing is uploaded. A share link stores your answers in the page address only.</p>
-                </div>
-                <aside className="intro-card glass">
-                  <p className="kicker">How it works</p>
-                  <ol>
-                    <li>Pick the closest choice. You can go back and change it.</li>
-                    <li>Review the top matches and why each one scored.</li>
-                    <li>Keep a link, print the page, or filter the comparison table.</li>
-                  </ol>
-                </aside>
-              </section>
-            )}
-            {phase === "quiz" && (
-              <Quiz
-                step={step}
-                answers={answers}
-                onChoose={choose}
-                onStep={setStep}
-                onFinish={finish}
-                onExit={retake}
-              />
-            )}
-            {phase === "results" && (
-              <Results ranked={ranked} source={catalog.source} onRetake={retake} />
-            )}
+                </motion.div>
+              )}
+              {phase === "quiz" && (
+                <motion.div
+                  key="quiz"
+                  initial={calm ? false : { opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={calm ? { opacity: 1 } : { opacity: 0, y: -12 }}
+                  transition={phaseMotion}
+                >
+                  <Quiz
+                    step={step}
+                    answers={answers}
+                    onChoose={choose}
+                    onStep={setStep}
+                    onFinish={finish}
+                    onExit={retake}
+                  />
+                </motion.div>
+              )}
+              {phase === "results" && (
+                <motion.div
+                  key="results"
+                  initial={calm ? false : { opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={calm ? { opacity: 1 } : { opacity: 0, y: -12 }}
+                  transition={phaseMotion}
+                >
+                  <Suspense fallback={<p className="loading glass" role="status">Preparing your matches.</p>}>
+                    <Results ranked={ranked} source={catalog.source} onRetake={retake} />
+                  </Suspense>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </main>
