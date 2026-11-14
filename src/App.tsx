@@ -1,25 +1,51 @@
-import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import logoUrl from "./assets/logo-mark.svg";
 import { questions } from "./data/questions";
 import catalogJson from "./data/careers.json";
 import { Quiz } from "./components/Quiz";
-import { Results } from "./components/Results";
+import { Reveal, TapButton, TapLink } from "./components/motionBits";
 import { decodeAnswers, encodeAnswers } from "./lib/hash";
+import { EASE, useCalm } from "./lib/motionPrefs";
 import { buildUserProfile, rankCareers } from "./lib/score";
 import type { Answers, CareerCatalog } from "./lib/types";
 
+const Results = lazy(() => import("./components/Results"));
+
 const catalog = catalogJson as CareerCatalog;
+const SITE = "https://aiteksolutions.net";
+
+const NAV = [
+  { href: `${SITE}/services`, label: "Services" },
+  { href: `${SITE}/employers`, label: "Employers" },
+  { href: `${SITE}/talent`, label: "Talent" },
+  { href: `${SITE}/about`, label: "About" },
+  { href: `${SITE}/apps`, label: "Apps" },
+  { href: `${SITE}/articles`, label: "Articles" },
+  { href: `${SITE}/docs`, label: "Docs" },
+  { href: `${SITE}/contact`, label: "Contact" },
+] as const;
 
 type Phase = "intro" | "quiz" | "results";
 
-function readTheme(): "light" | "dark" {
-  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+function Brand() {
+  return (
+    <span className="brand">
+      <img src={logoUrl} width={40} height={40} alt="" />
+      <span className="brand-text">
+        <span className="brand-name">AI TEK</span>
+        <span className="brand-sub">Solutions LLC</span>
+      </span>
+    </span>
+  );
 }
 
 export function App() {
   const [phase, setPhase] = useState<Phase>("intro");
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
-  const [theme, setTheme] = useState<"light" | "dark">(readTheme);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(() => window.scrollY > 12);
 
   useEffect(() => {
     function applyHash() {
@@ -38,17 +64,42 @@ export function App() {
     return () => window.removeEventListener("popstate", applyHash);
   }, []);
 
+  useEffect(() => {
+    function onScroll() {
+      setScrolled(window.scrollY > 12);
+    }
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle("menu-open", menuOpen);
+    return () => document.body.classList.remove("menu-open");
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
+
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 981px)");
+    function closeIfWide() {
+      if (query.matches) setMenuOpen(false);
+    }
+    query.addEventListener("change", closeIfWide);
+    return () => query.removeEventListener("change", closeIfWide);
+  }, []);
+
   const ranked = useMemo(() => {
     if (phase !== "results") return [];
     return rankCareers(catalog.careers, buildUserProfile(answers, questions));
   }, [answers, phase]);
-
-  function toggleTheme() {
-    const next = theme === "dark" ? "light" : "dark";
-    document.documentElement.dataset.theme = next;
-    localStorage.setItem("career-path-theme", next);
-    setTheme(next);
-  }
 
   function start() {
     setPhase("quiz");
@@ -74,59 +125,173 @@ export function App() {
     setPhase("intro");
   }
 
+  const year = new Date().getFullYear();
+  const calm = useCalm();
+  const phaseMotion = calm
+    ? { duration: 0 }
+    : { duration: 0.45, ease: EASE };
+
   return (
     <>
       <a className="skip" href="#main">Skip to content</a>
-      <header className="site-header">
-        <div className="brand">
-          <p className="eyebrow">Career Path Finder</p>
-          <p className="tagline">Interests, training, and the published outlook</p>
+      <header className={`nav-shell${scrolled ? " is-scrolled" : ""}${menuOpen ? " is-open" : ""}`}>
+        <a className="brand-link" href={`${SITE}/`} aria-label="AI TEK SOLUTIONS LLC, home">
+          <Brand />
+        </a>
+        <nav className="nav-links" aria-label="Primary">
+          {NAV.map((item) => (
+            <a key={item.href} href={item.href}>{item.label}</a>
+          ))}
+        </nav>
+        <div className="nav-end">
+          <TapLink className="btn btn-primary btn-sm" href={`${SITE}/contact`}>Submit a query</TapLink>
+          <button
+            className="menu-btn"
+            type="button"
+            aria-expanded={menuOpen}
+            aria-controls="mobile-menu"
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            <span className="sr-only">{menuOpen ? "Close menu" : "Open menu"}</span>
+            <span />
+            <span />
+          </button>
         </div>
-        <button
-          type="button"
-          className="theme-toggle ghost"
-          onClick={toggleTheme}
-          aria-pressed={theme === "dark"}
-        >
-          {theme === "dark" ? "Light mode" : "Dark mode"}
-        </button>
       </header>
-      <main id="main">
-        {phase === "intro" && (
-          <section className="intro" aria-labelledby="intro-title">
-            <h1 id="intro-title">Find a path that fits how you actually want to work.</h1>
-            <p className="lede">
-              Twenty questions on interests, physical work, people, schooling, pay, and location.
-              The result is a ranked list with pay, 10-year growth, and a starting checklist.
-              Figures come from the U.S. Bureau of Labor Statistics Occupational Outlook Handbook.
-            </p>
-            <ol className="intro-steps">
-              <li>Pick the closest choice. You can go back and change it.</li>
-              <li>Review the top matches and why each one scored.</li>
-              <li>Keep a link, print the page, or filter the comparison table.</li>
-            </ol>
-            <button type="button" className="primary" onClick={start}>Start the quiz</button>
-            <p className="fine">Nothing is uploaded. A share link stores your answers in the page address only.</p>
-          </section>
-        )}
-        {phase === "quiz" && (
-          <Quiz
-            step={step}
-            answers={answers}
-            onChoose={choose}
-            onStep={setStep}
-            onFinish={finish}
-            onExit={retake}
-          />
-        )}
-        {phase === "results" && (
-          <Results ranked={ranked} source={catalog.source} onRetake={retake} />
-        )}
+      <div id="mobile-menu" className="mobile-menu" hidden={!menuOpen}>
+        <nav aria-label="Mobile">
+          {NAV.map((item) => (
+            <a key={item.href} href={item.href} onClick={() => setMenuOpen(false)}>{item.label}</a>
+          ))}
+          <TapLink className="btn btn-primary" href={`${SITE}/contact`} onClick={() => setMenuOpen(false)}>
+            Submit a query
+          </TapLink>
+        </nav>
+      </div>
+      <main id="main" tabIndex={-1}>
+        <div className="page">
+          <div className="wrap">
+            <AnimatePresence mode="wait" initial={false}>
+              {phase === "intro" && (
+                <motion.div
+                  key="intro"
+                  initial={calm ? false : { opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={calm ? { opacity: 1 } : { opacity: 0, y: -12 }}
+                  transition={phaseMotion}
+                >
+                  <div className="intro-stage">
+                    <div className="mesh" aria-hidden="true">
+                      <span className="blob blob-a" />
+                      <span className="blob blob-b" />
+                      <span className="blob blob-c" />
+                    </div>
+                    <section className="intro-hero" aria-labelledby="intro-title">
+                    <div className="intro-copy">
+                      <Reveal index={0}>
+                        <p className="eyebrow">Career Path Finder</p>
+                      </Reveal>
+                      <Reveal index={1}>
+                        <h1 id="intro-title">Find a path that fits how you actually want to work.</h1>
+                      </Reveal>
+                      <Reveal index={2}>
+                        <p className="lede">
+                          Twenty questions on interests, physical work, people, schooling, pay, and location.
+                          The result is a ranked list with pay, 10-year growth, and a starting checklist.
+                          Figures come from the U.S. Bureau of Labor Statistics Occupational Outlook Handbook.
+                        </p>
+                      </Reveal>
+                      <Reveal index={3}>
+                        <div className="actions">
+                          <TapButton type="button" className="btn btn-primary" onClick={start}>Start the quiz</TapButton>
+                        </div>
+                      </Reveal>
+                      <Reveal index={4}>
+                        <p className="fine">Nothing is uploaded. A share link stores your answers in the page address only.</p>
+                      </Reveal>
+                    </div>
+                    <Reveal index={2} className="intro-card-wrap">
+                      <aside className="intro-card glass">
+                        <p className="kicker">How it works</p>
+                        <ol>
+                          <li>Pick the closest choice. You can go back and change it.</li>
+                          <li>Review the top matches and why each one scored.</li>
+                          <li>Keep a link, print the page, or filter the comparison table.</li>
+                        </ol>
+                      </aside>
+                    </Reveal>
+                    </section>
+                  </div>
+                </motion.div>
+              )}
+              {phase === "quiz" && (
+                <motion.div
+                  key="quiz"
+                  initial={calm ? false : { opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={calm ? { opacity: 1 } : { opacity: 0, y: -12 }}
+                  transition={phaseMotion}
+                >
+                  <Quiz
+                    step={step}
+                    answers={answers}
+                    onChoose={choose}
+                    onStep={setStep}
+                    onFinish={finish}
+                    onExit={retake}
+                  />
+                </motion.div>
+              )}
+              {phase === "results" && (
+                <motion.div
+                  key="results"
+                  initial={calm ? false : { opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={calm ? { opacity: 1 } : { opacity: 0, y: -12 }}
+                  transition={phaseMotion}
+                >
+                  <Suspense fallback={<p className="loading glass" role="status">Preparing your matches.</p>}>
+                    <Results ranked={ranked} source={catalog.source} onRetake={retake} />
+                  </Suspense>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </main>
       <footer className="site-footer">
-        <p>
-          <a href="https://aiteksolutions.net">by AI TEK SOLUTIONS</a>
-        </p>
+        <div className="wrap footer-top">
+          <div>
+            <a href={`${SITE}/`} aria-label="Home">
+              <Brand />
+            </a>
+            <p className="footer-blurb">
+              AI TEK SOLUTIONS LLC is a staffing firm for professional and skilled industrial work, including technology, cybersecurity, artificial intelligence, and skilled roles across industries.
+            </p>
+          </div>
+          <div>
+            <h2>Explore</h2>
+            <ul>
+              {NAV.map((item) => (
+                <li key={item.href}>
+                  <a href={item.href}>{item.label}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h2>Write to us</h2>
+            <p>
+              <a href="mailto:hr@aiteksolutions.net">hr@aiteksolutions.net</a>
+            </p>
+            <p className="footer-note">We read every form on this site and reply from that address.</p>
+          </div>
+        </div>
+        <p className="giant" aria-hidden="true">AI TEK</p>
+        <div className="wrap legal">
+          <p>© {year} AI TEK SOLUTIONS LLC</p>
+          <p>Professional · Skilled and industrial · Cybersecurity · AI</p>
+        </div>
       </footer>
     </>
   );
