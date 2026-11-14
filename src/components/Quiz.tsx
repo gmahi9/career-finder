@@ -30,7 +30,7 @@ export function Quiz({ step, answers, onChoose, onStep, onFinish, onExit }: Quiz
   }
 
   return (
-    <section className="quiz" aria-labelledby="quiz-title">
+    <section className="quiz glass" aria-labelledby="quiz-title">
       <div className="quiz-top">
         <h1 id="quiz-title">Question {step + 1} of {questions.length}</h1>
         <p className="fine" id="quiz-progress">{Math.round(((step + (selected ? 1 : 0)) / questions.length) * 100)}% answered</p>
@@ -69,12 +69,12 @@ export function Quiz({ step, answers, onChoose, onStep, onFinish, onExit }: Quiz
           </div>
         </fieldset>
         <div className="quiz-actions">
-          <button type="button" className="ghost" onClick={onExit}>Exit</button>
+          <button type="button" className="btn btn-ghost" onClick={onExit}>Exit</button>
           <div className="quiz-nav">
-            <button type="button" className="ghost" onClick={() => onStep(step - 1)} disabled={step === 0}>
+            <button type="button" className="btn btn-ghost" onClick={() => onStep(step - 1)} disabled={step === 0}>
               Back
             </button>
-            <button type="submit" className="primary" disabled={!selected}>
+            <button type="submit" className="btn btn-primary" disabled={!selected}>
               {step === questions.length - 1 ? "See results" : "Next"}
             </button>
           </div>

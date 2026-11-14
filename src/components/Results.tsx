@@ -50,22 +50,22 @@ export function Results({ ranked, source, onRetake }: ResultsProps) {
           </p>
         </div>
         <div className="results-actions no-print">
-          <button type="button" className="primary" onClick={() => window.print()}>Print or save as PDF</button>
-          <button type="button" className="ghost" onClick={onRetake}>Retake quiz</button>
+          <button type="button" className="btn btn-primary" onClick={() => window.print()}>Print or save as PDF</button>
+          <button type="button" className="btn btn-ghost" onClick={onRetake}>Retake quiz</button>
         </div>
       </div>
 
-      <div className="share no-print">
-        <label htmlFor="share-url">Shareable results link</label>
+      <div className="share glass no-print">
+        <label className="field" htmlFor="share-url">Shareable results link</label>
         <div className="share-row">
           <input id="share-url" readOnly value={shareUrl} />
-          <button type="button" className="ghost" onClick={copyLink}>Copy link</button>
+          <button type="button" className="btn btn-ghost" onClick={copyLink}>Copy link</button>
         </div>
         <p className="fine" role="status" aria-live="polite">{copyNote}</p>
       </div>
 
-      <form className="filters no-print" aria-label="Filter matches" onSubmit={(event) => event.preventDefault()}>
-        <label>
+      <form className="filters glass no-print" aria-label="Filter matches" onSubmit={(event) => event.preventDefault()}>
+        <label className="field">
           Search
           <input
             type="search"
@@ -73,7 +73,7 @@ export function Results({ ranked, source, onRetake }: ResultsProps) {
             onChange={(event) => setFilters({ ...filters, query: event.target.value })}
           />
         </label>
-        <label>
+        <label className="field">
           Field
           <select value={filters.category} onChange={(event) => setFilters({ ...filters, category: event.target.value })}>
             <option value="any">All fields</option>
@@ -82,7 +82,7 @@ export function Results({ ranked, source, onRetake }: ResultsProps) {
             ))}
           </select>
         </label>
-        <label>
+        <label className="field">
           Preparation you will consider
           <select
             value={filters.education}
@@ -94,7 +94,7 @@ export function Results({ ranked, source, onRetake }: ResultsProps) {
             ))}
           </select>
         </label>
-        <label>
+        <label className="field">
           Minimum median pay
           <select value={filters.minPay} onChange={(event) => setFilters({ ...filters, minPay: Number(event.target.value) })}>
             <option value={0}>Any</option>
@@ -103,7 +103,7 @@ export function Results({ ranked, source, onRetake }: ResultsProps) {
             <option value={100000}>$100,000</option>
           </select>
         </label>
-        <label>
+        <label className="field">
           Minimum 10-year growth
           <select value={filters.minGrowth} onChange={(event) => setFilters({ ...filters, minGrowth: Number(event.target.value) })}>
             <option value={-100}>Any, including decline</option>
@@ -112,7 +112,7 @@ export function Results({ ranked, source, onRetake }: ResultsProps) {
             <option value={10}>10% or higher</option>
           </select>
         </label>
-        <label>
+        <label className="field">
           Setting
           <select
             value={filters.setting}
@@ -133,7 +133,7 @@ export function Results({ ranked, source, onRetake }: ResultsProps) {
 
       <ol className="cards">
         {top.map((item, index) => (
-          <li key={item.career.id} className="card">
+          <li key={item.career.id} className="card glass">
             <div className="card-top">
               <p className="rank">#{index + 1}</p>
               <span className="pill" data-category={item.career.category}>{categoryLabel(item.career.category)}</span>
@@ -181,10 +181,10 @@ export function Results({ ranked, source, onRetake }: ResultsProps) {
         ))}
       </ol>
 
-      <div className="table-wrap">
+      <div className="table-wrap glass">
         <div className="table-tools no-print">
           <h2>Comparison</h2>
-          <button type="button" className="ghost" onClick={() => setShowAll((value) => !value)} disabled={filtered.length <= 5}>
+          <button type="button" className="btn btn-ghost" onClick={() => setShowAll((value) => !value)} disabled={filtered.length <= 5}>
             {showAll ? "Show top 5 only" : `Compare all ${filtered.length} filtered matches`}
           </button>
         </div>
