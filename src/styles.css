@@ -147,8 +147,8 @@ h2,
 h3 {
   font-family: var(--display);
   font-weight: 700;
-  letter-spacing: -0.045em;
-  line-height: 0.96;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
   margin: 0;
 }
 
@@ -398,10 +398,10 @@ p {
 .mobile-menu a {
   text-decoration: none;
   font-family: var(--display);
-  font-size: clamp(2rem, 8vw, 3.4rem);
-  letter-spacing: -0.04em;
+  font-size: clamp(1.35rem, 1.15rem + 1.2vw, 1.75rem);
+  letter-spacing: -0.02em;
   padding: 0.15rem 0;
-  line-height: 0.96;
+  line-height: 1.15;
 }
 
 .mobile-menu .btn {
@@ -574,7 +574,9 @@ button:disabled {
 }
 
 .intro-hero h1 {
-  font-size: clamp(2.7rem, 4.6vw, 4.2rem);
+  font-size: clamp(2rem, 1.4rem + 2.4vw, 3.25rem);
+  letter-spacing: normal;
+  line-height: 1.12;
 }
 
 .reel {
@@ -815,9 +817,9 @@ fieldset {
 legend {
   font-family: var(--display);
   font-weight: 700;
-  font-size: clamp(1.7rem, 3vw, 2.35rem);
-  letter-spacing: -0.045em;
-  line-height: 0.98;
+  font-size: clamp(1.35rem, 1.15rem + 0.8vw, 1.75rem);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
   padding: 0;
 }
 
@@ -907,7 +909,9 @@ legend {
 
 .results-head h1,
 .table-tools h2 {
-  font-size: clamp(2.2rem, 4.6vw, 3.5rem);
+  font-size: clamp(2rem, 1.4rem + 2.4vw, 3.25rem);
+  letter-spacing: normal;
+  line-height: 1.12;
 }
 
 .results-head .lede {
@@ -1178,7 +1182,7 @@ meter::-moz-meter-bar {
 }
 
 .card h2 {
-  font-size: clamp(1.6rem, 2.4vw, 2.1rem);
+  font-size: 1.35rem;
   margin: 0.85rem 0 0.65rem;
 }
 
@@ -1262,7 +1266,7 @@ meter::-moz-meter-bar {
 }
 
 .table-tools h2 {
-  font-size: clamp(1.6rem, 2.4vw, 2.1rem);
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2.25rem);
 }
 
 table {
@@ -1387,10 +1391,6 @@ tbody tr:nth-child(even) {
 
   .intro-copy {
     max-width: 40rem;
-  }
-
-  .intro-hero h1 {
-    font-size: clamp(2.7rem, 7vw, 4rem);
   }
 
   .reel,
