@@ -1,12 +1,11 @@
-import { AnimatePresence, motion } from "motion/react";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import logoUrl from "./assets/logo-mark.svg";
-import { questions } from "./data/questions";
-import catalogJson from "./data/careers.json";
+import { Constellation } from "./components/Constellation";
+import { PhaseFade, RevealRoot, TapButton, TapLink } from "./components/motionBits";
 import { Quiz } from "./components/Quiz";
-import { Reveal, TapButton, TapLink } from "./components/motionBits";
+import catalogJson from "./data/careers.json";
+import { questions } from "./data/questions";
 import { decodeAnswers, encodeAnswers } from "./lib/hash";
-import { EASE, useCalm } from "./lib/motionPrefs";
 import { buildUserProfile, rankCareers } from "./lib/score";
 import type { Answers, CareerCatalog } from "./lib/types";
 
@@ -126,10 +125,6 @@ export function App() {
   }
 
   const year = new Date().getFullYear();
-  const calm = useCalm();
-  const phaseMotion = calm
-    ? { duration: 0 }
-    : { duration: 0.45, ease: EASE };
 
   return (
     <>
@@ -171,91 +166,60 @@ export function App() {
       <main id="main" tabIndex={-1}>
         <div className="page">
           <div className="wrap">
-            <AnimatePresence mode="wait" initial={false}>
+            <PhaseFade key={phase}>
               {phase === "intro" && (
-                <motion.div
-                  key="intro"
-                  initial={calm ? false : { opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={calm ? { opacity: 1 } : { opacity: 0, y: -12 }}
-                  transition={phaseMotion}
-                >
-                  <div className="intro-stage">
-                    <div className="mesh" aria-hidden="true">
-                      <span className="blob blob-a" />
-                      <span className="blob blob-b" />
-                      <span className="blob blob-c" />
-                    </div>
-                    <section className="intro-hero" aria-labelledby="intro-title">
-                    <div className="intro-copy">
-                      <Reveal index={0}>
-                        <p className="eyebrow">Career Path Finder</p>
-                      </Reveal>
-                      <Reveal index={1}>
-                        <h1 id="intro-title">Find a path that fits how you actually want to work.</h1>
-                      </Reveal>
-                      <Reveal index={2}>
-                        <p className="lede">
-                          Twenty questions on interests, physical work, people, schooling, pay, and location.
-                          The result is a ranked list with pay, 10-year growth, and a starting checklist.
-                          Figures come from the U.S. Bureau of Labor Statistics Occupational Outlook Handbook.
-                        </p>
-                      </Reveal>
-                      <Reveal index={3}>
-                        <div className="actions">
-                          <TapButton type="button" className="btn btn-primary" onClick={start}>Start the quiz</TapButton>
-                        </div>
-                      </Reveal>
-                      <Reveal index={4}>
-                        <p className="fine">Nothing is uploaded. A share link stores your answers in the page address only.</p>
-                      </Reveal>
-                    </div>
-                    <Reveal index={2} className="intro-card-wrap">
-                      <aside className="intro-card glass">
-                        <p className="kicker">How it works</p>
-                        <ol>
-                          <li>Pick the closest choice. You can go back and change it.</li>
-                          <li>Review the top matches and why each one scored.</li>
-                          <li>Keep a link, print the page, or filter the comparison table.</li>
-                        </ol>
-                      </aside>
-                    </Reveal>
-                    </section>
+                <div className="intro-stage">
+                  <div className="mesh" aria-hidden="true">
+                    <span className="blob blob-a" />
+                    <span className="blob blob-b" />
+                    <span className="blob blob-c" />
                   </div>
-                </motion.div>
+                  <RevealRoot className="intro-hero" aria-labelledby="intro-title">
+                    <div className="intro-copy">
+                      <p className="eyebrow" data-reveal>Career Path Finder</p>
+                      <h1 id="intro-title">
+                        <span className="line-mask"><span className="line" data-line>Find a path that fits</span></span>
+                        <span className="line-mask"><span className="line" data-line>how you actually</span></span>
+                        <span className="line-mask"><span className="line" data-line>want to work.</span></span>
+                      </h1>
+                      <p className="lede" data-reveal>
+                        Twenty questions on interests, physical work, people, schooling, pay, and location.
+                        The result is a ranked list with pay, 10-year growth, and a starting checklist.
+                        Figures come from the U.S. Bureau of Labor Statistics Occupational Outlook Handbook.
+                      </p>
+                      <div className="actions" data-reveal>
+                        <TapButton type="button" className="btn btn-primary" onClick={start}>Start the quiz</TapButton>
+                      </div>
+                      <p className="fine" data-reveal>Nothing is uploaded. A share link stores your answers in the page address only.</p>
+                    </div>
+                    <Constellation />
+                    <aside className="intro-card glass" data-reveal>
+                      <p className="kicker">How it works</p>
+                      <ol>
+                        <li>Pick the closest choice. You can go back and change it.</li>
+                        <li>Review the top matches and why each one scored.</li>
+                        <li>Keep a link, print the page, or filter the comparison table.</li>
+                      </ol>
+                    </aside>
+                  </RevealRoot>
+                </div>
               )}
               {phase === "quiz" && (
-                <motion.div
-                  key="quiz"
-                  initial={calm ? false : { opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={calm ? { opacity: 1 } : { opacity: 0, y: -12 }}
-                  transition={phaseMotion}
-                >
-                  <Quiz
-                    step={step}
-                    answers={answers}
-                    onChoose={choose}
-                    onStep={setStep}
-                    onFinish={finish}
-                    onExit={retake}
-                  />
-                </motion.div>
+                <Quiz
+                  step={step}
+                  answers={answers}
+                  onChoose={choose}
+                  onStep={setStep}
+                  onFinish={finish}
+                  onExit={retake}
+                />
               )}
               {phase === "results" && (
-                <motion.div
-                  key="results"
-                  initial={calm ? false : { opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={calm ? { opacity: 1 } : { opacity: 0, y: -12 }}
-                  transition={phaseMotion}
-                >
-                  <Suspense fallback={<p className="loading glass" role="status">Preparing your matches.</p>}>
-                    <Results ranked={ranked} source={catalog.source} onRetake={retake} />
-                  </Suspense>
-                </motion.div>
+                <Suspense fallback={<p className="loading glass" role="status">Preparing your matches.</p>}>
+                  <Results ranked={ranked} source={catalog.source} onRetake={retake} />
+                </Suspense>
               )}
-            </AnimatePresence>
+            </PhaseFade>
           </div>
         </div>
       </main>

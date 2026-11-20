@@ -1,12 +1,12 @@
-import { AnimatePresence, LayoutGroup, motion } from "motion/react";
-import { useMemo, useState } from "react";
+import gsap from "gsap";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { guideUrl } from "../data/articleLinks";
 import { questions } from "../data/questions";
 import { CATEGORY_LABELS, EDUCATION_LABELS, categoryLabel, formatCount, formatGrowth, formatPay } from "../lib/format";
-import { EASE, useCalm } from "../lib/motionPrefs";
+import { useCalm } from "../lib/motionPrefs";
 import { applyFilters } from "../lib/score";
 import type { CareerCatalog, EducationLevel, ResultFilters, ScoredCareer } from "../lib/types";
-import { CountUp, ScoreRing, TapButton, useLayoutTransition } from "./motionBits";
+import { CountUp, ScoreRing, TapButton, useLift } from "./motionBits";
 
 interface ResultsProps {
   ranked: ScoredCareer[];
@@ -101,35 +101,35 @@ export function Results({ ranked, source, onRetake }: ResultsProps) {
         </label>
         <ChipGroup
           label="Field"
-          layoutKey="field"
+          groupKey="field"
           value={filters.category}
           options={[{ value: "any", label: "All fields" }, ...Object.entries(CATEGORY_LABELS).map(([value, label]) => ({ value, label }))]}
           onChange={(category) => setFilters({ ...filters, category })}
         />
         <ChipGroup
           label="Preparation you will consider"
-          layoutKey="education"
+          groupKey="education"
           value={filters.education}
           options={[{ value: "any", label: "Any preparation" }, ...Object.entries(EDUCATION_LABELS).map(([value, label]) => ({ value, label }))]}
           onChange={(education) => setFilters({ ...filters, education: education as EducationLevel | "any" })}
         />
         <ChipGroup
           label="Minimum median pay"
-          layoutKey="pay"
+          groupKey="pay"
           value={String(filters.minPay)}
           options={PAY_OPTIONS.map((item) => ({ value: String(item.value), label: item.label }))}
           onChange={(minPay) => setFilters({ ...filters, minPay: Number(minPay) })}
         />
         <ChipGroup
           label="Minimum 10-year growth"
-          layoutKey="growth"
+          groupKey="growth"
           value={String(filters.minGrowth)}
           options={GROWTH_OPTIONS.map((item) => ({ value: String(item.value), label: item.label }))}
           onChange={(minGrowth) => setFilters({ ...filters, minGrowth: Number(minGrowth) })}
         />
         <ChipGroup
           label="Setting"
-          layoutKey="setting"
+          groupKey="setting"
           value={filters.setting}
           options={SETTING_OPTIONS.map((item) => ({ value: item.value, label: item.label }))}
           onChange={(setting) => setFilters({ ...filters, setting: setting as ResultFilters["setting"] })}
@@ -142,22 +142,18 @@ export function Results({ ranked, source, onRetake }: ResultsProps) {
           : `Showing ${top.length} of ${filtered.length} matches under the current filters.`}
       </p>
 
-      <LayoutGroup>
-        <ol className="bento">
-          <AnimatePresence mode="popLayout" initial={false}>
-            {top.map((item, index) => (
-              <ResultCard
-                key={item.career.id}
-                item={item}
-                index={index}
-                source={source}
-                calm={calm}
-                featured={index === 0}
-              />
-            ))}
-          </AnimatePresence>
-        </ol>
-      </LayoutGroup>
+      <ol className="bento">
+        {top.map((item, index) => (
+          <ResultCard
+            key={item.career.id}
+            item={item}
+            index={index}
+            source={source}
+            calm={calm}
+            featured={index === 0}
+          />
+        ))}
+      </ol>
 
       <div className="table-wrap glass">
         <div className="table-tools no-print">
@@ -183,27 +179,9 @@ export function Results({ ranked, source, onRetake }: ResultsProps) {
             </tr>
           </thead>
           <tbody>
-            <AnimatePresence initial={false} mode="popLayout">
-              {tableRows.map((item) => (
-                <motion.tr
-                  key={item.career.id}
-                  layout={animateRows}
-                  initial={calm ? false : { opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0, transition: { duration: calm ? 0 : 0.16 } }}
-                  transition={calm ? { duration: 0 } : { layout: { type: "spring", stiffness: 320, damping: 34 }, opacity: { duration: 0.22 } }}
-                  style={{ display: "table-row" }}
-                >
-                  <th scope="row">{item.career.title}</th>
-                  <td>{item.score}</td>
-                  <td>{formatPay(item.career.medianPay)}</td>
-                  <td>{formatGrowth(item.career.growthPercent, item.career.growthLabel)}</td>
-                  <td>{item.career.entryEducation}</td>
-                  <td>{item.career.training}</td>
-                  <td><a href={item.career.oohUrl}>BLS profile</a></td>
-                </motion.tr>
-              ))}
-            </AnimatePresence>
+            {tableRows.map((item) => (
+              <TableRow key={item.career.id} item={item} animate={animateRows} />
+            ))}
           </tbody>
         </table>
       </div>
@@ -214,45 +192,72 @@ export function Results({ ranked, source, onRetake }: ResultsProps) {
 
 function ChipGroup({
   label,
-  layoutKey,
+  groupKey,
   value,
   options,
   onChange,
 }: {
   label: string;
-  layoutKey: string;
+  groupKey: string;
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
 }) {
-  const calm = useCalm();
-  const layout = useLayoutTransition();
-  const labelId = `filter-${layoutKey}`;
-
+  const labelId = `filter-${groupKey}`;
   return (
     <div className="chip-group" role="group" aria-labelledby={labelId}>
       <p id={labelId}>{label}</p>
       <div className="chip-row">
-        {options.map((option) => {
-          const on = option.value === value;
-          return (
-            <motion.button
-              key={option.value}
-              type="button"
-              className={on ? "chip is-on" : "chip"}
-              aria-pressed={on}
-              onClick={() => onChange(option.value)}
-              whileHover={calm ? undefined : { y: -1 }}
-              whileTap={calm ? undefined : { scale: 0.97 }}
-              transition={calm ? { duration: 0 } : { type: "spring", stiffness: 460, damping: 30 }}
-            >
-              {on && <motion.span className="chip-wash" layoutId={`chip-${layoutKey}`} transition={layout} />}
-              <span>{option.label}</span>
-            </motion.button>
-          );
-        })}
+        {options.map((option) => (
+          <ChipButton
+            key={option.value}
+            label={option.label}
+            pressed={option.value === value}
+            onClick={() => onChange(option.value)}
+          />
+        ))}
       </div>
     </div>
+  );
+}
+
+function ChipButton({ label, pressed, onClick }: { label: string; pressed: boolean; onClick: () => void }) {
+  const calm = useCalm();
+  const ref = useRef<HTMLButtonElement>(null);
+  useLift(ref, !calm, 1);
+  return (
+    <button
+      ref={ref}
+      type="button"
+      className={pressed ? "chip is-on" : "chip"}
+      aria-pressed={pressed}
+      onClick={onClick}
+    >
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function TableRow({ item, animate }: { item: ScoredCareer; animate: boolean }) {
+  const ref = useRef<HTMLTableRowElement>(null);
+  useLayoutEffect(() => {
+    const node = ref.current;
+    if (!node || !animate) return;
+    const tween = gsap.fromTo(node, { opacity: 0 }, { opacity: 1, duration: 0.28, ease: "power2.out" });
+    return () => {
+      tween.kill();
+    };
+  }, [animate, item.career.id]);
+  return (
+    <tr ref={ref}>
+      <th scope="row">{item.career.title}</th>
+      <td>{item.score}</td>
+      <td>{formatPay(item.career.medianPay)}</td>
+      <td>{formatGrowth(item.career.growthPercent, item.career.growthLabel)}</td>
+      <td>{item.career.entryEducation}</td>
+      <td>{item.career.training}</td>
+      <td><a href={item.career.oohUrl}>BLS profile</a></td>
+    </tr>
   );
 }
 
@@ -269,17 +274,23 @@ function ResultCard({
   calm: boolean;
   featured: boolean;
 }) {
+  const ref = useRef<HTMLLIElement>(null);
+  useLift(ref, !calm, 4);
+  useLayoutEffect(() => {
+    const node = ref.current;
+    if (!node || calm) return;
+    const tween = gsap.fromTo(
+      node,
+      { y: 26, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.6, ease: "power3.out", delay: Math.min(index, 4) * 0.06 },
+    );
+    return () => {
+      tween.kill();
+    };
+  }, [calm, index]);
+
   return (
-    <motion.li
-      className={featured ? "card glass card-featured" : "card glass"}
-      layout={!calm}
-      initial={calm ? false : { opacity: 0, y: 26 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
-      whileHover={calm ? undefined : { y: -4 }}
-      exit={{ opacity: 0, transition: { duration: calm ? 0 : 0.18 } }}
-      transition={calm ? { duration: 0 } : { duration: 0.55, ease: EASE, delay: Math.min(index, 4) * 0.05, layout: { type: "spring", stiffness: 280, damping: 32 } }}
-    >
+    <li ref={ref} className={featured ? "card glass card-featured" : "card glass"}>
       <div className="card-top">
         <p className="rank">#{index + 1}</p>
         <span className="pill" data-category={item.career.category}>{categoryLabel(item.career.category)}</span>
@@ -325,7 +336,7 @@ function ResultCard({
         <a href={item.career.oohUrl}>Occupational Outlook Handbook profile</a>
         <a href={guideUrl(item.career.id)}>Guide on AI TEK SOLUTIONS</a>
       </p>
-    </motion.li>
+    </li>
   );
 }
 

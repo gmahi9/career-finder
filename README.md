@@ -18,6 +18,10 @@ Each career links to its Occupational Outlook Handbook profile and to a guide on
 
 A footer credit links to [https://aiteksolutions.net](https://aiteksolutions.net).
 
+## Presentation
+
+The opening view shows the twelve career fields as a quiet orbit. That drawing loads on its own, after the quiz, and it follows the pointer. When a browser asks for reduced motion, or when WebGL is unavailable, the same orbit stays still and the progress bar, question changes, and fit scores appear in their finished state. The questions, scores, filters, and share link behave as before.
+
 ## Data sources
 
 Pay, employment, growth, entry education, and training categories come from the [Occupational Outlook Handbook](https://www.bls.gov/ooh/) published by the U.S. Bureau of Labor Statistics.
