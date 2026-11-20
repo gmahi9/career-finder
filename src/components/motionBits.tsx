@@ -1,57 +1,110 @@
-import { animate, motion, useInView } from "motion/react";
-import { useEffect, useRef, type ComponentProps, type ReactNode } from "react";
+import gsap from "gsap";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type AnchorHTMLAttributes,
+  type ButtonHTMLAttributes,
+  type HTMLAttributes,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { formatPay } from "../lib/format";
-import { EASE, LAYOUT, PRESS, useCalm } from "../lib/motionPrefs";
+import { fitRingOffset } from "../lib/fitRing";
+import { useCalm } from "../lib/motionPrefs";
 
-export function Reveal({
-  index = 0,
-  className,
-  children,
-}: {
-  index?: number;
-  className?: string;
-  children: ReactNode;
-}) {
+export function RevealRoot({ className, children, ...props }: HTMLAttributes<HTMLElement> & { children: ReactNode }) {
+  const ref = useRef<HTMLElement>(null);
   const calm = useCalm();
+
+  useLayoutEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    if (calm) {
+      gsap.set(root.querySelectorAll("[data-line], [data-reveal]"), { clearProps: "all" });
+      return;
+    }
+    const context = gsap.context(() => {
+      const lines = root.querySelectorAll("[data-line]");
+      if (lines.length) {
+        gsap.from(lines, { yPercent: 110, duration: 0.86, stagger: 0.09, ease: "power3.out" });
+      }
+      const bits = root.querySelectorAll("[data-reveal]");
+      if (bits.length) {
+        gsap.from(bits, {
+          y: 20,
+          autoAlpha: 0,
+          duration: 0.72,
+          stagger: 0.08,
+          ease: "power3.out",
+          delay: 0.06,
+        });
+      }
+    }, root);
+    return () => context.revert();
+  }, [calm]);
+
   return (
-    <motion.div
-      className={className}
-      initial={calm ? false : { opacity: 0, y: 22 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={calm ? { duration: 0 } : { duration: 0.62, ease: EASE, delay: 0.04 + index * 0.07 }}
-    >
+    <section ref={ref} className={className} {...props}>
       {children}
-    </motion.div>
+    </section>
   );
 }
 
-export function TapButton({
-  disabled,
-  ...props
-}: ComponentProps<typeof motion.button>) {
+export function PhaseFade({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
   const calm = useCalm();
-  const still = Boolean(calm || disabled);
-  return (
-    <motion.button
-      {...props}
-      disabled={disabled}
-      whileHover={still ? undefined : { y: -2 }}
-      whileTap={still ? undefined : { scale: 0.975 }}
-      transition={still ? { duration: 0 } : PRESS}
-    />
-  );
+
+  useLayoutEffect(() => {
+    const node = ref.current;
+    if (!node || calm) return;
+    const tween = gsap.fromTo(
+      node,
+      { y: 16, autoAlpha: 0 },
+      { y: 0, autoAlpha: 1, duration: 0.45, ease: "power3.out" },
+    );
+    return () => {
+      tween.kill();
+      gsap.set(node, { clearProps: "opacity,visibility,transform" });
+    };
+  }, [calm]);
+
+  return <div ref={ref}>{children}</div>;
 }
 
-export function TapLink(props: ComponentProps<typeof motion.a>) {
+export function useLift<T extends HTMLElement>(ref: RefObject<T | null>, enabled: boolean, distance = 3) {
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || !enabled) return;
+    const enter = () => {
+      gsap.to(node, { y: -distance, duration: 0.32, ease: "power2.out", overwrite: "auto" });
+    };
+    const leave = () => {
+      gsap.to(node, { y: 0, duration: 0.45, ease: "power3.out", overwrite: "auto" });
+    };
+    node.addEventListener("pointerenter", enter);
+    node.addEventListener("pointerleave", leave);
+    return () => {
+      node.removeEventListener("pointerenter", enter);
+      node.removeEventListener("pointerleave", leave);
+      gsap.killTweensOf(node);
+      gsap.set(node, { y: 0 });
+    };
+  }, [enabled, distance]);
+}
+
+export function TapButton({ disabled, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
   const calm = useCalm();
-  return (
-    <motion.a
-      {...props}
-      whileHover={calm ? undefined : { y: -2 }}
-      whileTap={calm ? undefined : { scale: 0.975 }}
-      transition={calm ? { duration: 0 } : PRESS}
-    />
-  );
+  const ref = useRef<HTMLButtonElement>(null);
+  useLift(ref, !calm && !disabled, 2);
+  return <button ref={ref} disabled={disabled} {...props} />;
+}
+
+export function TapLink(props: AnchorHTMLAttributes<HTMLAnchorElement>) {
+  const calm = useCalm();
+  const ref = useRef<HTMLAnchorElement>(null);
+  useLift(ref, !calm, 2);
+  return <a ref={ref} {...props} />;
 }
 
 type CountKind = "pay" | "growth" | "int";
@@ -66,7 +119,6 @@ function renderCount(kind: CountKind, value: number): string {
 export function CountUp({ value, kind }: { value: number; kind: CountKind }) {
   const calm = useCalm();
   const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.6 });
 
   useEffect(() => {
     const node = ref.current;
@@ -75,16 +127,31 @@ export function CountUp({ value, kind }: { value: number; kind: CountKind }) {
       node.textContent = renderCount(kind, value);
       return;
     }
-    if (!inView) return;
-    const controls = animate(0, value, {
-      duration: 0.9,
-      ease: EASE,
-      onUpdate: (latest) => {
-        node.textContent = renderCount(kind, latest);
-      },
-    });
-    return () => controls.stop();
-  }, [calm, inView, kind, value]);
+    node.textContent = renderCount(kind, 0);
+    let played = false;
+    let tween: gsap.core.Tween | null = null;
+    const play = () => {
+      if (played) return;
+      played = true;
+      const proxy = { n: 0 };
+      tween = gsap.to(proxy, {
+        n: value,
+        duration: 0.95,
+        ease: "power3.out",
+        onUpdate: () => {
+          node.textContent = renderCount(kind, proxy.n);
+        },
+      });
+    };
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) play();
+    }, { threshold: 0.55 });
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+      tween?.kill();
+    };
+  }, [calm, kind, value]);
 
   return <span ref={ref}>{renderCount(kind, calm ? value : 0)}</span>;
 }
@@ -92,26 +159,48 @@ export function CountUp({ value, kind }: { value: number; kind: CountKind }) {
 export function ScoreRing({ score }: { score: number }) {
   const calm = useCalm();
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.5 });
+  const circleRef = useRef<SVGCircleElement>(null);
+  const { circumference, offset } = fitRingOffset(score);
   const radius = 28;
-  const circumference = 2 * Math.PI * radius;
-  const target = circumference * (1 - score / 100);
-  const shown = inView || calm ? target : circumference;
+
+  useEffect(() => {
+    const root = ref.current;
+    const circle = circleRef.current;
+    if (!root || !circle) return;
+    if (calm) {
+      gsap.set(circle, { strokeDashoffset: offset });
+      return;
+    }
+    gsap.set(circle, { strokeDashoffset: circumference });
+    let played = false;
+    const play = () => {
+      if (played) return;
+      played = true;
+      gsap.to(circle, { strokeDashoffset: offset, duration: 1.15, ease: "power3.out" });
+    };
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) play();
+    }, { threshold: 0.4 });
+    observer.observe(root);
+    return () => {
+      observer.disconnect();
+      gsap.killTweensOf(circle);
+    };
+  }, [calm, circumference, offset]);
 
   return (
     <div className="ring" ref={ref}>
       <span className="sr-only">Fit score {score} out of 100</span>
       <svg viewBox="0 0 72 72" aria-hidden="true">
         <circle className="ring-track" cx="36" cy="36" r={radius} />
-        <motion.circle
+        <circle
+          ref={circleRef}
           className="ring-value"
           cx="36"
           cy="36"
           r={radius}
           strokeDasharray={circumference}
-          initial={false}
-          animate={{ strokeDashoffset: shown }}
-          transition={calm ? { duration: 0 } : { duration: 1.05, ease: EASE }}
+          strokeDashoffset={calm ? offset : circumference}
         />
       </svg>
       <span className="ring-num" aria-hidden="true">
@@ -120,9 +209,4 @@ export function ScoreRing({ score }: { score: number }) {
       </span>
     </div>
   );
-}
-
-export function useLayoutTransition() {
-  const calm = useCalm();
-  return calm ? { duration: 0 } : LAYOUT;
 }
